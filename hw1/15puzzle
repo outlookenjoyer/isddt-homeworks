@@ -1,0 +1,135 @@
+#!/bin/bash
+
+board=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0)
+
+find_empty() {
+    for ((i = 0; i < 16; i++))
+    do
+        if [[ ${board[$i]} -eq 0 ]]
+        then
+            empty=$i
+        fi
+    done
+}
+
+find_neighbors() {
+    find_empty
+    neighbors=()
+    row=$((empty / 4))
+    col=$((empty % 4))
+    if [[ $row -gt 0 ]]; then neighbors+=($((empty - 4))); fi
+    if [[ $row -lt 3 ]]; then neighbors+=($((empty + 4))); fi
+    if [[ $col -gt 0 ]]; then neighbors+=($((empty - 1))); fi
+    if [[ $col -lt 3 ]]; then neighbors+=($((empty + 1))); fi
+}
+
+print_board() {
+    echo "+-------------------+"
+    for ((r = 0; r < 4; r++))
+    do
+        line="|"
+        for ((c = 0; c < 4; c++))
+        do
+            value=${board[$((r * 4 + c))]}
+            if [[ $value -eq 0 ]]
+            then
+                value=""
+            fi
+            line="$line $(printf "%2s" "$value") |"
+        done
+        echo "$line"
+        if [[ $r -lt 3 ]]
+        then
+            echo "|-------------------|"
+        fi
+    done
+    echo "+-------------------+"
+}
+
+is_solved() {
+    for ((i = 0; i < 15; i++))
+    do
+        if [[ ${board[$i]} -ne $((i + 1)) ]]
+        then
+            return 1
+        fi
+    done
+    return 0
+}
+
+for ((n = 0; n < 1000; n++))
+do
+    find_neighbors
+    random_index=$((RANDOM % ${#neighbors[@]}))
+    pos=${neighbors[$random_index]}
+    board[$empty]=${board[$pos]}
+    board[$pos]=0
+done
+
+while is_solved
+do
+    find_neighbors
+    pos=${neighbors[0]}
+    board[$empty]=${board[$pos]}
+    board[$pos]=0
+done
+
+step=1
+error_message=""
+
+while true
+do
+    echo ""
+    echo "Ход № $step"
+    print_board
+
+    if [[ "$error_message" != "" ]]
+    then
+        echo -e "$error_message"
+        error_message=""
+    fi
+
+    read -p "Ваш ход (q - выход): " input
+
+    if [[ "$input" == "q" ]]
+    then
+        echo "Выход из игры"
+        exit 0
+    fi
+
+    find_neighbors
+    can_move=""
+    found=-1
+    for pos in "${neighbors[@]}"
+    do
+        if [[ "$can_move" == "" ]]
+        then
+            can_move="${board[$pos]}"
+        else
+            can_move="$can_move, ${board[$pos]}"
+        fi
+        if [[ "$input" == "${board[$pos]}" ]]
+        then
+            found=$pos
+        fi
+    done
+
+    if [[ $found -eq -1 ]]
+    then
+        error_message="Неверный ход!\nНевозможно костяшку $input передвинуть на пустую ячейку.\nМожно выбрать: $can_move"
+        continue
+    fi
+
+    board[$empty]=${board[$found]}
+    board[$found]=0
+
+    if is_solved
+    then
+        echo ""
+        echo "Вы собрали головоломку за $step ходов."
+        print_board
+        exit 0
+    fi
+
+    step=$((step + 1))
+done

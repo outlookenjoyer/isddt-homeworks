@@ -1,0 +1,102 @@
+#!/bin/bash
+
+trap 'echo ""; echo "Чтобы выйти из игры, введите q или Q"' SIGINT
+
+declare -A stacks
+stacks[A]="8 7 6 5 4 3 2 1"
+stacks[B]=""
+stacks[C]=""
+
+print_stacks() {
+    a=(${stacks[A]})
+    b=(${stacks[B]})
+    c=(${stacks[C]})
+
+    for ((level = 8; level >= 1; level--))
+    do
+        idx=$((level - 1))
+
+        x=" "
+        y=" "
+        z=" "
+        if [[ $idx -lt ${#a[@]} ]]; then x=${a[$idx]}; fi
+        if [[ $idx -lt ${#b[@]} ]]; then y=${b[$idx]}; fi
+        if [[ $idx -lt ${#c[@]} ]]; then z=${c[$idx]}; fi
+
+        echo "|$x| |$y| |$z|"
+    done
+    echo "+-+ +-+ +-+"
+    echo " A   B   C"
+}
+
+step=1
+print_stacks
+
+while true
+do
+    read -p "Ход № $step (откуда, куда): " input
+
+    if [[ -z "$input" ]]
+    then
+        continue
+    fi
+
+    if [[ "$input" == "q" || "$input" == "Q" ]]
+    then
+        echo "Выход из игры"
+        exit 1
+    fi
+
+    input=${input// /}
+    input=${input^^}
+
+    if [[ ! "$input" =~ ^[ABC][ABC]$ ]]
+    then
+        echo "Ошибка ввода! Введите два имени стеков (A, B, C), например: ab или A C"
+        continue
+    fi
+
+    from=${input:0:1}
+    to=${input:1:1}
+
+    if [[ "$from" == "$to" ]]
+    then
+        echo "Ошибка! Стек-отправитель и стек-получатель должны быть разными"
+        continue
+    fi
+
+    from_stack=(${stacks[$from]})
+    to_stack=(${stacks[$to]})
+
+    if [[ ${#from_stack[@]} -eq 0 ]]
+    then
+        echo "Стек $from пустой, из него нечего брать!"
+        continue
+    fi
+
+    top_from=${from_stack[-1]}
+
+    if [[ ${#to_stack[@]} -gt 0 ]]
+    then
+        top_to=${to_stack[-1]}
+        if [[ $top_from -gt $top_to ]]
+        then
+            echo "Такое перемещение запрещено!"
+            continue
+        fi
+    fi
+
+    unset 'from_stack[-1]'
+    to_stack+=($top_from)
+    stacks[$from]="${from_stack[*]}"
+    stacks[$to]="${to_stack[*]}"
+
+    step=$((step + 1))
+    print_stacks
+
+    if [[ "${stacks[B]}" == "8 7 6 5 4 3 2 1" || "${stacks[C]}" == "8 7 6 5 4 3 2 1" ]]
+    then
+        echo "Поздравляю! Вы победили за $((step - 1)) ходов!"
+        exit 0
+    fi
+done
