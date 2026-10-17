@@ -1,0 +1,37 @@
+#!/bin/bash
+
+if [[ $# -ne 1 ]]
+then
+    echo "Использование: $0 каталог"
+    exit 1
+fi
+
+dir="$1"
+
+if [[ ! -d "$dir" ]]
+then
+    echo "Ошибка: $dir не является каталогом"
+    exit 1
+fi
+
+user_name=$(whoami)
+date_now=$(date -I)
+
+line="Approved $user_name $date_now"
+
+for file in "$dir"/*.txt
+do
+    if [[ ! -f "$file" || -L "$file" ]]
+    then
+        continue
+    fi
+
+    tmp_file="$file.tmp"
+    echo "$line" > "$tmp_file"
+    cat "$file" >> "$tmp_file"
+
+    cat "$tmp_file" > "$file"
+    rm "$tmp_file"
+
+    echo "Обработан: $file"
+done

@@ -1,0 +1,67 @@
+#!/bin/bash
+
+dir_path=""
+name=""
+
+while getopts "d:n:" opt
+do
+    case "$opt" in
+        d) dir_path="$OPTARG" ;;
+        n) name="$OPTARG" ;;
+        *)
+            echo "Использование: $0 -d dir_path -n name"
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z "$dir_path" || -z "$name" ]]
+then
+    echo "Ошибка: нужно указать обе опции -d и -n"
+    echo "Использование: $0 -d dir_path -n name"
+    exit 1
+fi
+
+if [[ ! -d "$dir_path" ]]
+then
+    echo "Ошибка: $dir_path не является каталогом"
+    exit 1
+fi
+
+cat > "$name" << 'EOF'
+#!/bin/bash
+
+outdir="."
+
+while getopts "o:" opt
+do
+    case "$opt" in
+        o) outdir="$OPTARG" ;;
+        *)
+            echo "Использование: $0 [-o unpackdir]"
+            exit 1
+            ;;
+    esac
+done
+
+mkdir -p "$outdir"
+
+sed '1,/^__ARCHIVE__$/d' "$0" | base64 -d | tar -xzf - -C "$outdir"
+
+if [[ $? -eq 0 ]]
+then
+    echo "Архив распакован в $outdir"
+else
+    echo "Ошибка при распаковке"
+    exit 1
+fi
+
+exit 0
+__ARCHIVE__
+EOF
+
+tar -czf - -C "$dir_path" . | base64 >> "$name"
+
+chmod a+x "$name"
+
+echo "Готово! Создан архив $name"

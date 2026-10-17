@@ -1,0 +1,68 @@
+#!/bin/bash
+
+if [[ $# -ne 3 ]]
+then
+    echo "Использование: $0 каталог старый_суффикс новый_суффикс"
+    exit 1
+fi
+
+dir="$1"
+old_suffix="$2"
+new_suffix="$3"
+
+if [[ ! -d "$dir" ]]
+then
+    echo "Ошибка: $dir не является каталогом"
+    exit 1
+fi
+
+if [[ ! "$old_suffix" =~ ^\.[^.]+$ ]]
+then
+    echo "Ошибка: старый суффикс '$old_suffix' неправильный (пример: .txt)"
+    exit 1
+fi
+
+if [[ ! "$new_suffix" =~ ^\.[^.]+$ ]]
+then
+    echo "Ошибка: новый суффикс '$new_suffix' неправильный (пример: .md)"
+    exit 1
+fi
+
+files=()
+while IFS= read -r file
+do
+    files+=("$file")
+done < <(find "$dir" -type f)
+
+count=0
+
+for file in "${files[@]}"
+do
+    name=${file##*/}
+
+    rest=${name:1}
+
+    if [[ "$rest" != *.* ]]
+    then
+        continue
+    fi
+
+    suffix=".${rest##*.}"
+
+    if [[ "$suffix" == "$old_suffix" ]]
+    then
+        new_file=${file/%"$old_suffix"/"$new_suffix"}
+
+        if [[ -e "$new_file" ]]
+        then
+            echo "Пропуск: $new_file уже существует"
+            continue
+        fi
+
+        mv "$file" "$new_file"
+        echo "$file -> $new_file"
+        count=$((count + 1))
+    fi
+done
+
+echo "Переименовано файлов: $count"

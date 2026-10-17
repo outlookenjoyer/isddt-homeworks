@@ -1,0 +1,41 @@
+#!/bin/bash
+
+if [[ $# -ne 1 ]]
+then
+    echo "Использование: $0 каталог"
+    exit 1
+fi
+
+dir="$1"
+
+if [[ ! -d "$dir" ]]
+then
+    echo "Ошибка: $dir не является каталогом"
+    exit 1
+fi
+
+declare -A stat
+
+while IFS= read -r file
+do
+    name=${file##*/}
+
+    rest=${name:1}
+
+    if [[ "$rest" == *.* ]]
+    then
+        suffix=".${rest##*.}"
+    else
+        suffix="no suffix"
+    fi
+
+    stat["$suffix"]=$(( ${stat["$suffix"]:-0} + 1 ))
+done < <(find "$dir" -type f)
+
+for key in "${!stat[@]}"
+do
+    echo "${stat[$key]} $key"
+done | sort -rn | while read -r num suf
+do
+    echo "$suf: $num"
+done
